@@ -1,0 +1,206 @@
+<!-- Sistema de estoque: Vai ter o número de peças e o nome das peças e o modelo dos relógios -->
+<!-- 
+    Modelo Relogio: 
+    Nome da Peça:
+    Número de Peças:
+
+    Salva em um banco de dados
+
+    Input: Busca por Modelo, Peça
+-->
+
+<!--  -->
+
+<!-- Conectar ao banco de dados e fazer verificação se podemos ou não vincular a uma planilha -->
+
+  <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Estoque - Lugane</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    .form-section, .search-section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Controle de Estoque - Lugane</h1>
+
+  <div class="form-section">
+    <h2>Cadastro de Peças</h2>
+    <label for="modelo">Modelo do Relógio:</label>
+    <input type="text" id="modelo" placeholder="Ex: LVR-1959">
+
+    <label for="peca">Nome da Peça:</label>
+    <input type="text" id="peca" placeholder="Ex: Placa Principal">
+
+    <label for="quantidade">Quantidade:</label>
+    <input type="number" id="quantidade" placeholder="Ex: 10">
+
+    <button onclick="salvarPeca()">Salvar Peça</button>
+  </div>
+
+  <div class="search-section">
+    <h2>Buscar Peças</h2>
+    <input type="text" id="busca" placeholder="Digite o nome da peça ou modelo..." oninput="filtrarTabela()">
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Modelo</th>
+        <th>Peça</th>
+        <th>Quantidade</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-corpo"></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getDatabase, ref, push, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+    // Configuração com seus dados
+    const firebaseConfig = {
+      apiKey: "AIzaSyCbYPpH8kBvd3w0G99xrlsqcvJ51OyItS4",
+      authDomain: "lugane-estoque-a76a6.firebaseapp.com",
+      databaseURL: "https://lugane-estoque-a76a6-default-rtdb.firebaseio.com",
+      projectId: "lugane-estoque-a76a6",
+      storageBucket: "lugane-estoque-a76a6.appspot.com",
+      messagingSenderId: "218820542563",
+      appId: "1:218820542563:web:5c39fe1643bdb6cfed7856"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const estoqueRef = ref(db, 'estoque');
+
+    // Salvar nova peça
+    window.salvarPeca = function () {
+      const modelo = document.getElementById('modelo').value.trim();
+      const peca = document.getElementById('peca').value.trim();
+      const quantidade = parseInt(document.getElementById('quantidade').value);
+
+      if (!modelo || !peca || isNaN(quantidade)) {
+        alert("Preencha todos os campos corretamente.");
+        return;
+      }
+
+      const novaRef = push(estoqueRef);
+      set(novaRef, { modelo, peca, quantidade });
+
+      document.getElementById('modelo').value = '';
+      document.getElementById('peca').value = '';
+      document.getElementById('quantidade').value = '';
+    }
+
+    // Buscar e exibir dados
+    let dadosEstoque = [];
+
+    onValue(estoqueRef, (snapshot) => {
+      const tbody = document.getElementById('tabela-corpo');
+      tbody.innerHTML = '';
+      dadosEstoque = [];
+
+      snapshot.forEach((child) => {
+        const item = child.val();
+        dadosEstoque.push(item);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.modelo}</td>
+          <td>${item.peca}</td>
+          <td>${item.quantidade}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+
+    // Filtro de busca
+    window.filtrarTabela = function () {
+      const termo = document.getElementById('busca').value.toLowerCase();
+      const tbody = document.getElementById('tabela-corpo');
+      tbody.innerHTML = '';
+
+      dadosEstoque.forEach(item => {
+        if (
+          item.modelo.toLowerCase().includes(termo) ||
+          item.peca.toLowerCase().includes(termo)
+        ) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.modelo}</td>
+            <td>${item.peca}</td>
+            <td>${item.quantidade}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>
+
+<!-- https://console.firebase.google.com/project/lugane-estoque-a76a6/database/lugane-estoque-a76a6-default-rtdb/data -->
+
