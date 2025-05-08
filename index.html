@@ -80,9 +80,21 @@
     tr:nth-child(even) {
       background-color: #f2f2f2;
     }
+
+    .excluir-botao{
+      background-color: red;
+    }
+
+    .logo{
+        height: 100px;
+        width: 150px;
+    } 
+
   </style>
 </head>
 <body>
+
+  <img src="logo_semfundo.png" class="logo" alt="">
 
   <h1>Controle de Estoque - Lugane</h1>
 
@@ -111,6 +123,7 @@
         <th>Modelo</th>
         <th>Peça</th>
         <th>Quantidade</th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody id="tabela-corpo"></tbody>
@@ -164,17 +177,47 @@
 
       snapshot.forEach((child) => {
         const item = child.val();
-        dadosEstoque.push(item);
+        const key = child.key;
+        dadosEstoque.push({ ...item, key });
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${item.modelo}</td>
           <td>${item.peca}</td>
           <td>${item.quantidade}</td>
+            <td>
+               <button onclick="alterarQuantidade('${key}', 1)">+</button>
+               <button onclick="alterarQuantidade('${key}', -1)" ${item.quantidade === 0 ? 'disabled' : ''}>−</button>
+               <button onclick="deletarPeca('${key}')" class="excluir-botao">Excluir</button>
+            </td>
         `;
         tbody.appendChild(tr);
       });
     });
+
+    import { update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+    window.alterarQuantidade = function(key, delta){
+      const item = dadosEstoque.find(i => i.key === key)
+      if(!item) return;
+
+      const novaQuantidade = item.quantidade + delta;
+      if(novaQuantidade < 0) return
+      
+      const itemRef = ref(db, `estoque/${key}`)
+      update(itemRef, { quantidade: novaQuantidade})
+    }
+
+    import { remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+    window.deletarPeca = function(key) {
+      if (confirm("Tem certeza que deseja excluir esta peça?")) {
+        const itemRef = ref(db, `estoque/${key}`);
+        remove(itemRef)
+          .then(() => console.log("Peça excluída com sucesso."))
+          .catch((error) => console.error("Erro ao excluir peça:", error));
+      }
+    }
 
     // Filtro de busca
     window.filtrarTabela = function () {
@@ -192,6 +235,10 @@
             <td>${item.modelo}</td>
             <td>${item.peca}</td>
             <td>${item.quantidade}</td>
+            <td>
+              <button onclick="alterarQuantidade('${item.key}', 1)">+</button>
+              <button onclick="alterarQuantidade('${item.key}', -1)" ${item.quantidade === 0 ? 'disabled' : ''}>−</button>
+          </td>
           `;
           tbody.appendChild(tr);
         }
@@ -203,4 +250,10 @@
 </html>
 
 <!-- https://console.firebase.google.com/project/lugane-estoque-a76a6/database/lugane-estoque-a76a6-default-rtdb/data -->
+
+<!-- Próximo Passo:
+ 
+
+
+-->
 
