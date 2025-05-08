@@ -1,19 +1,4 @@
-<!-- Sistema de estoque: Vai ter o número de peças e o nome das peças e o modelo dos relógios -->
-<!-- 
-    Modelo Relogio: 
-    Nome da Peça:
-    Número de Peças:
-
-    Salva em um banco de dados
-
-    Input: Busca por Modelo, Peça
--->
-
-<!--  -->
-
-<!-- Conectar ao banco de dados e fazer verificação se podemos ou não vincular a uma planilha -->
-
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -42,7 +27,7 @@
       margin-top: 10px;
     }
 
-    input[type="text"], input[type="number"] {
+    input[type="text"], input[type="number"], input[type="date"], select {
       width: 100%;
       padding: 8px;
       margin-top: 5px;
@@ -81,14 +66,14 @@
       background-color: #f2f2f2;
     }
 
-    .excluir-botao{
+    .excluir-botao {
       background-color: red;
     }
 
-    .logo{
-        height: 100px;
-        width: 150px;
-    } 
+    .logo {
+      height: 100px;
+      width: 150px;
+    }
 
   </style>
 </head>
@@ -98,6 +83,7 @@
 
   <h1>Controle de Estoque - Lugane</h1>
 
+  <!-- Cadastro de Peças -->
   <div class="form-section">
     <h2>Cadastro de Peças</h2>
     <label for="modelo">Modelo do Relógio:</label>
@@ -112,11 +98,13 @@
     <button onclick="salvarPeca()">Salvar Peça</button>
   </div>
 
+  <!-- Buscar Peças -->
   <div class="search-section">
     <h2>Buscar Peças</h2>
     <input type="text" id="busca" placeholder="Digite o nome da peça ou modelo..." oninput="filtrarTabela()">
   </div>
 
+  <!-- Tabela de Peças -->
   <table>
     <thead>
       <tr>
@@ -129,9 +117,54 @@
     <tbody id="tabela-corpo"></tbody>
   </table>
 
+  <!-- Registrar Orçamento -->
+  <div class="form-section">
+    <h2>Registrar Orçamento</h2>
+
+    <label for="modeloOrc">Modelo do Relógio:</label>
+    <input type="text" id="modeloOrc" placeholder="Ex: LVR-1959">
+
+    <label for="dataOrc">Data do Orçamento:</label>
+    <input type="date" id="dataOrc">
+
+    <label for="quantidadeOrc">Quantidade de Peças Usadas:</label>
+    <input type="number" id="quantidadeOrc" placeholder="Ex: 2">
+
+    <label for="descricaoOrc">Descrição:</label>
+    <input type="text" id="descricaoOrc" placeholder="Descreva o serviço ou problema">
+
+    <label for="tecnicoOrc">Técnico Responsável:</label>
+    <input type="text" id="tecnicoOrc" placeholder="Nome do técnico">
+
+    <label for="autorizadoOrc">Autorizado Manutenção?</label>
+    <select id="autorizadoOrc">
+      <option value="SIM">SIM</option>
+      <option value="NÃO">NÃO</option>
+    </select>
+
+    <button onclick="registrarOrcamento()">Salvar Orçamento</button>
+  </div>
+
+  <!-- Tabela de Orçamentos -->
+  <h2>Orçamentos Registrados</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Modelo</th>
+        <th>Data</th>
+        <th>Quantidade</th>
+        <th>Descrição</th>
+        <th>Técnico</th>
+        <th>Autorizado</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-orcamentos"></tbody>
+  </table>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getDatabase, ref, push, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+    import { getDatabase, ref, push, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
     // Configuração com seus dados
     const firebaseConfig = {
@@ -147,6 +180,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const estoqueRef = ref(db, 'estoque');
+    const orcamentosRef = ref(db, 'orcamentos');
 
     // Salvar nova peça
     window.salvarPeca = function () {
@@ -165,9 +199,9 @@
       document.getElementById('modelo').value = '';
       document.getElementById('peca').value = '';
       document.getElementById('quantidade').value = '';
-    }
+    };
 
-    // Buscar e exibir dados
+    // Buscar e exibir dados do estoque
     let dadosEstoque = [];
 
     onValue(estoqueRef, (snapshot) => {
@@ -185,31 +219,29 @@
           <td>${item.modelo}</td>
           <td>${item.peca}</td>
           <td>${item.quantidade}</td>
-            <td>
-               <button onclick="alterarQuantidade('${key}', 1)">+</button>
-               <button onclick="alterarQuantidade('${key}', -1)" ${item.quantidade === 0 ? 'disabled' : ''}>−</button>
-               <button onclick="deletarPeca('${key}')" class="excluir-botao">Excluir</button>
-            </td>
+          <td>
+            <button onclick="alterarQuantidade('${key}', 1)">+</button>
+            <button onclick="alterarQuantidade('${key}', -1)" ${item.quantidade === 0 ? 'disabled' : ''}>−</button>
+            <button onclick="deletarPeca('${key}')" class="excluir-botao">Excluir</button>
+          </td>
         `;
         tbody.appendChild(tr);
       });
     });
 
-    import { update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
-
-    window.alterarQuantidade = function(key, delta){
-      const item = dadosEstoque.find(i => i.key === key)
-      if(!item) return;
+    // Alterar quantidade de peças no estoque
+    window.alterarQuantidade = function(key, delta) {
+      const item = dadosEstoque.find(i => i.key === key);
+      if (!item) return;
 
       const novaQuantidade = item.quantidade + delta;
-      if(novaQuantidade < 0) return
-      
-      const itemRef = ref(db, `estoque/${key}`)
-      update(itemRef, { quantidade: novaQuantidade})
-    }
+      if (novaQuantidade < 0) return;
 
-    import { remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+      const itemRef = ref(db, `estoque/${key}`);
+      update(itemRef, { quantidade: novaQuantidade });
+    };
 
+    // Deletar peça do estoque
     window.deletarPeca = function(key) {
       if (confirm("Tem certeza que deseja excluir esta peça?")) {
         const itemRef = ref(db, `estoque/${key}`);
@@ -217,9 +249,132 @@
           .then(() => console.log("Peça excluída com sucesso."))
           .catch((error) => console.error("Erro ao excluir peça:", error));
       }
+    };
+
+    // Registrar Orçamento
+    window.registrarOrcamento = function () {
+      const modelo = document.getElementById('modeloOrc').value.trim();
+      const data = document.getElementById('dataOrc').value;
+      const quantidade = parseInt(document.getElementById('quantidadeOrc').value);
+      const descricao = document.getElementById('descricaoOrc').value.trim();
+      const tecnico = document.getElementById('tecnicoOrc').value.trim();
+      const autorizado = document.getElementById('autorizadoOrc').value;
+
+      if (!modelo || !data || isNaN(quantidade) || !descricao || !tecnico) {
+        alert("Preencha todos os campos corretamente.");
+        return;
+      }
+
+      // Localiza item no estoque
+      const item = dadosEstoque.find(i => i.modelo.toLowerCase() === modelo.toLowerCase());
+
+      if (!item) {
+        alert("Modelo não encontrado no estoque.");
+        return;
+      }
+
+      // Se autorizado, dar baixa no estoque
+      if (autorizado === "SIM") {
+        if (item.quantidade < quantidade) {
+          alert("Estoque insuficiente para esta quantidade.");
+          return;
+        }
+
+        const itemRef = ref(db, `estoque/${item.key}`);
+        update(itemRef, { quantidade: item.quantidade - quantidade })
+          .then(() => {
+            salvarOrcamento();
+          })
+          .catch((error) => {
+            console.error("Erro ao atualizar o estoque:", error);
+            alert("Erro ao atualizar o estoque.");
+          });
+      } else {
+        salvarOrcamento();
+      }
+    };
+
+    // Função para salvar orçamento
+    function salvarOrcamento() {
+      const modelo = document.getElementById('modeloOrc').value.trim();
+      const data = document.getElementById('dataOrc').value;
+      const quantidade = parseInt(document.getElementById('quantidadeOrc').value);
+      const descricao = document.getElementById('descricaoOrc').value.trim();
+      const tecnico = document.getElementById('tecnicoOrc').value.trim();
+      const autorizado = document.getElementById('autorizadoOrc').value;
+
+      const novoOrcamento = {
+        modelo,
+        data,
+        quantidade,
+        descricao,
+        tecnico,
+        autorizado
+      };
+
+      const novaRef = push(orcamentosRef);
+      set(novaRef, novoOrcamento)
+        .then(() => {
+          alert("Orçamento registrado com sucesso.");
+          document.getElementById('modeloOrc').value = '';
+          document.getElementById('dataOrc').value = '';
+          document.getElementById('quantidadeOrc').value = '';
+          document.getElementById('descricaoOrc').value = '';
+          document.getElementById('tecnicoOrc').value = '';
+          document.getElementById('autorizadoOrc').value = 'SIM';
+        })
+        .catch((error) => {
+          console.error("Erro ao registrar orçamento:", error);
+          alert("Erro ao registrar orçamento.");
+        });
     }
 
-    // Filtro de busca
+    // Exibir orçamentos na tela
+    let dadosOrcamentos = [];
+
+    onValue(orcamentosRef, (snapshot) => {
+      const tbody = document.getElementById('tabela-orcamentos');
+      tbody.innerHTML = '';
+      dadosOrcamentos = [];
+
+      snapshot.forEach((child) => {
+        const item = child.val();
+        const key = child.key;
+        dadosOrcamentos.push({ ...item, key });
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.modelo}</td>
+          <td>${item.data}</td>
+          <td>${item.quantidade}</td>
+          <td>${item.descricao}</td>
+          <td>${item.tecnico}</td>
+          <td>${item.autorizado}</td>
+          <td>
+            ${item.autorizado === "SIM" ? '' : `<button onclick="alterarStatusOrcamento('${key}')">Alterar Status</button>`}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+
+    // Alterar status do orçamento
+    window.alterarStatusOrcamento = function (key) {
+      const item = dadosOrcamentos.find(i => i.key === key);
+      if (!item) return;
+
+      const itemRef = ref(db, `orcamentos/${key}`);
+      update(itemRef, { autorizado: "SIM" })
+        .then(() => {
+          alert("Orçamento autorizado com sucesso!");
+        })
+        .catch((error) => {
+          console.error("Erro ao autorizar orçamento:", error);
+          alert("Erro ao autorizar orçamento.");
+        });
+    };
+
+    // Filtro de busca das peças
     window.filtrarTabela = function () {
       const termo = document.getElementById('busca').value.toLowerCase();
       const tbody = document.getElementById('tabela-corpo');
@@ -238,23 +393,16 @@
             <td>
               <button onclick="alterarQuantidade('${item.key}', 1)">+</button>
               <button onclick="alterarQuantidade('${item.key}', -1)" ${item.quantidade === 0 ? 'disabled' : ''}>−</button>
-          </td>
+              <button onclick="deletarPeca('${item.key}')" class="excluir-botao">Excluir</button>
+            </td>
           `;
           tbody.appendChild(tr);
         }
       });
-    }
+    };
   </script>
 
 </body>
 </html>
 
-<!-- https://console.firebase.google.com/project/lugane-estoque-a76a6/database/lugane-estoque-a76a6-default-rtdb/data -->
-
-<!-- Próximo Passo:
- Como podemos fazer: ou com informações diretas no sistema e descontando automaticamente do estoque caso de SIM
-
- Fazer um login, pode ser com uma palavra secreta somente
-
--->
-
+<!-- Verificar se há peça no banco conforme o nome passado e decrementar caso for AUTORIZADO -->
