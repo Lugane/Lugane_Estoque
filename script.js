@@ -341,6 +341,17 @@ window.filtrarTabela = function () {
   });
 };
 
+window.verificarSenha = function (){
+  const senhaCorreta = "Lvr1939";
+  const senhaDigitada = document.getElementById("senha-input").value
+
+  if(senhaDigitada === senhaCorreta){
+    document.getElementById("tela-senha").style.display = "none"
+  } else{
+    document.getElementById("mensagem-erro").style.display = "block"
+  }
+}
+
 
 
 

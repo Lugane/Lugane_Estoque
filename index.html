@@ -7,6 +7,24 @@
 </head>
 <body>
 
+  <!-- Tela de senha -->
+<div id="tela-senha" style="
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: white;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+">
+  <h2>Digite a senha para acessar o sistema:</h2>
+  <input type="password" id="senha-input" placeholder="Senha..." style="padding: 10px; font-size: 16px; border-radius: 5px; border-color: rgb(204, 180, 180);">
+  <button onclick="verificarSenha()" style="margin-top: 10px; padding: 10px 20px;">Entrar</button>
+  <p id="mensagem-erro" style="color: red; display: none; margin-top: 10px;">Senha incorreta.</p>
+</div>
+
+
   <div class="header">
     <img src="logo_semfundo.png" class="logo" alt="Logo">
   
@@ -117,9 +135,9 @@
 </html>
 
 
-<!-- Palavra secreta para ter acesso -->
+<!-- Palavra secreta para ter acesso || OK --> 
 
-<!-- Ajustar Icones depois -->
+<!-- Ajustar Icones depois || OK -->
 
 <!-- Subir pela Vercel -->
 
